@@ -113,6 +113,59 @@ This keeps everything in one place, versioned, free, and portfolio-visible if yo
 
 ---
 
-## 5. Working Approach
+## 5. Data Mapping — LinkedIn Export to Output Files
+
+`scripts/parse_linkedin_export.py` reads one LinkedIn "Content Analytics" export (.xlsx) and writes to three files, each at a different grain (per post, per day, per export run). They're kept separate rather than merged into one table, since forcing different grains into a single file breaks aggregation (a daily total isn't a property of any one post, and a per-export summary isn't a property of any one day).
+
+### 5.1 `data/master.csv` — one row per post
+
+| Field | Source in export | How it's derived |
+|---|---|---|
+| `date` | **TOP POSTS** sheet → "Post Publish Date" | Taken directly |
+| `post_url` | **TOP POSTS** sheet → "Post URL" | Taken directly. A stable numeric post ID is extracted from this URL internally to match the same post across exports, since LinkedIn changes the tracking suffix (e.g. `-nhUU` vs `-RZeU`) week to week |
+| `post_topic` | **TOP POSTS** sheet → "Post URL" | Not a real export field. Decoded from the URL slug (URL-unescaped, bold Unicode characters normalized back to plain letters). A rough starting guess, worth cleaning up by hand |
+| `content_type` | *Not in the export* | Blank. Manual: Original / Repost / Repost+Commentary |
+| `pillar` | *Not in the export* | Blank. Manual: Platform Thinking / Career Reflection / AI or ML / Industry News / Personal Story |
+| `impressions` | **TOP POSTS** sheet → "Impressions" (impression-ranked table) | Taken directly |
+| `reactions` | *Not in the export* | Blank. LinkedIn only reports a combined engagement total per post, not the reaction/comment/share split |
+| `comments` | *Not in the export* | Blank, same reason |
+| `shares` | *Not in the export* | Blank, same reason |
+| `total_engagements` | **TOP POSTS** sheet → "Engagements" (engagement-ranked table) | Taken directly |
+| `engagement_rate` | *Calculated* | `total_engagements ÷ impressions` |
+| `new_followers` | **FOLLOWERS** sheet → "New followers" | Matched to the post's publish date. Since this is a daily total, only the first post published that day gets the count, later same-day posts are left blank to avoid double-counting |
+
+Re-running the script against a new export refreshes `impressions`, `total_engagements`, `engagement_rate`, and `new_followers` for existing posts, but preserves any manually filled `post_topic`, `content_type`, or `pillar` rather than overwriting them.
+
+### 5.2 `data/daily_totals.csv` — one row per date
+
+| Field | Source in export | How it's derived |
+|---|---|---|
+| `date` | **ENGAGEMENT** sheet → "Date" | Taken directly |
+| `impressions` | **ENGAGEMENT** sheet → "Impressions" | Account-wide total for that day, across all posts combined |
+| `engagements` | **ENGAGEMENT** sheet → "Engagements" | Account-wide total for that day |
+| `engagement_rate` | *Calculated* | `engagements ÷ impressions` |
+| `new_followers` | **FOLLOWERS** sheet → "New followers" | Direct join on date, no approximation needed here since both are already daily |
+
+This is the cleaner home for daily follower counts, no "first post of the day" guesswork required, since every row is already one date. Re-running the script overwrites a given date's row with the latest numbers, which matters because LinkedIn keeps revising a day's totals for several days after it happens (e.g. 7/12's impressions grew from 74 to 128 by the time the next week's export was pulled).
+
+### 5.3 `data/discovery_log.csv` — one row per script run (append-only)
+
+| Field | Source in export | How it's derived |
+|---|---|---|
+| `pulled_at` | *Not in the export* | Timestamp of when the script was run, not when the data happened |
+| `range_start` | **DISCOVERY** sheet → "Overall Performance" range | Split from the "M/D/YYYY - M/D/YYYY" string |
+| `range_end` | **DISCOVERY** sheet → "Overall Performance" range | Split from the same string |
+| `total_impressions` | **DISCOVERY** sheet → "Impressions" | LinkedIn's own reported total for the whole export's date range |
+| `total_members_reached` | **DISCOVERY** sheet → "Members reached" | LinkedIn's own reported total for the whole range |
+
+This file is never de-duplicated or overwritten, every run adds a new line. It exists as a sanity check, since DISCOVERY is a single range-level summary rather than daily data, you can eyeball it against the sum of `daily_totals.csv` for the same range to confirm nothing's being mis-parsed.
+
+### 5.4 What's in the export but not used yet
+
+- **DEMOGRAPHICS** sheet (top companies, titles, locations) isn't post performance data, and doesn't fit this schema. Worth revisiting once V3.0 (AI recommendations) needs audience context.
+
+---
+
+## 6. Working Approach
 
 Given the goal of avoiding open ended, moving-target sessions, each ClickUp task should be scoped to something completable in a single sitting (roughly 1 to 2 hours), with a clear "done" definition. Tasks are grouped into sprints matching the roadmap phases above, starting with V1.0 only, since V2.0 onward depends on the still-pending LinkedIn API approval.
