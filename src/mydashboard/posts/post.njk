@@ -39,6 +39,19 @@ eleventyComputed:
 <div class="card">
   <h2>Performance Over Time</h2>
   {% if post.history.length > 1 %}
+  <div class="range-toggle">
+    <button class="range-btn" data-range="7" type="button">7 days</button>
+    <button class="range-btn" data-range="14" type="button">14 days</button>
+    <button class="range-btn" data-range="30" type="button">30 days</button>
+    <button class="range-btn active" data-range="all" type="button">All time</button>
+    <button class="range-btn" data-range="custom" type="button">Custom</button>
+  </div>
+  <div class="custom-range-inputs" id="custom-range-inputs" style="display:none;">
+    <input type="date" id="range-start">
+    <span>to</span>
+    <input type="date" id="range-end">
+    <button type="button" id="apply-custom-range">Apply</button>
+  </div>
   <canvas id="postChart" height="100"></canvas>
   {% else %}
   <p style="color:var(--ink-soft); font-size:14px;">Only one data pull recorded for this post so far. The growth chart needs at least 2 pulls to show a trend, check back after the next export.</p>
@@ -73,7 +86,7 @@ eleventyComputed:
   var inkSoft = styles.getPropertyValue('--ink-soft').trim();
   var line = styles.getPropertyValue('--line').trim();
 
-  new Chart(document.getElementById('postChart'), {
+  var postChart = new Chart(document.getElementById('postChart'), {
     type: 'line',
     data: {
       labels: history.map(function(h){ return h.pulled_at; }),
@@ -92,5 +105,39 @@ eleventyComputed:
       }
     }
   });
+
+  (function(){
+    var rangeButtons = document.querySelectorAll('.range-btn');
+    var customInputs = document.getElementById('custom-range-inputs');
+    var startInput = document.getElementById('range-start');
+    var endInput = document.getElementById('range-end');
+    var applyCustomBtn = document.getElementById('apply-custom-range');
+
+    function filterHistory(rangeValue, customStart, customEnd){
+      if (rangeValue === 'all') return history;
+      if (rangeValue === 'custom') {
+        if (!customStart || !customEnd) return history;
+        var s = new Date(customStart), e = new Date(customEnd);
+        return history.filter(function(h){ var d = new Date(h.pulled_at); return d >= s && d <= e; });
+      }
+      var days = parseInt(rangeValue, 10);
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      return history.filter(function(h){ return new Date(h.pulled_at) >= cutoff; });
+    }
+
+    function applyRange(rangeValue, customStart, customEnd){
+      var filtered = filterHistory(rangeValue, customStart, customEnd);
+      postChart.data.labels = filtered.map(function(h){ return h.pulled_at; });
+      postChart.data.datasets[0].data = filtered.map(function(h){ return h.impressions; });
+      postChart.data.datasets[1].data = filtered.map(function(h){ return h.engagements; });
+      postChart.update();
+      rangeButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.range === rangeValue); });
+      customInputs.style.display = rangeValue === 'custom' ? 'flex' : 'none';
+    }
+
+    rangeButtons.forEach(function(btn){ btn.addEventListener('click', function(){ applyRange(btn.dataset.range); }); });
+    applyCustomBtn.addEventListener('click', function(){ applyRange('custom', startInput.value, endInput.value); });
+  })();
 </script>
 {% endif %}

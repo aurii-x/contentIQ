@@ -39,6 +39,19 @@ title: "Dashboard"
 
 <div class="card">
   <h2>Account Impressions Over Time</h2>
+  <div class="range-toggle">
+    <button class="range-btn" data-range="7" type="button">7 days</button>
+    <button class="range-btn" data-range="14" type="button">14 days</button>
+    <button class="range-btn" data-range="30" type="button">30 days</button>
+    <button class="range-btn active" data-range="all" type="button">All time</button>
+    <button class="range-btn" data-range="custom" type="button">Custom</button>
+  </div>
+  <div class="custom-range-inputs" id="custom-range-inputs" style="display:none;">
+    <input type="date" id="range-start">
+    <span>to</span>
+    <input type="date" id="range-end">
+    <button type="button" id="apply-custom-range">Apply</button>
+  </div>
   <canvas id="timelineChart" height="90"></canvas>
 </div>
 
@@ -57,7 +70,7 @@ title: "Dashboard"
       {% for post in posts %}
       <tr>
         <td>{{ post.date }}</td>
-        <td><a class="post-link" href="/posts/{{ post.slug }}/">{{ post.topic | truncate(35) }}</a></td>
+        <td><a class="post-link" href="/mydashboard/posts/{{ post.slug }}/">{{ post.topic | truncate(35) }}</a></td>
         <td><span class="type-pill">{{ post.contentType }}</span></td>
         <td>{{ post.pillar }}</td>
         <td class="abs-hide">{{ post.impressions }}</td>
@@ -101,7 +114,7 @@ title: "Dashboard"
     }
   });
 
-  new Chart(document.getElementById('timelineChart'), {
+  var timelineChart = new Chart(document.getElementById('timelineChart'), {
     type: 'line',
     data: {
       labels: daily.map(function(d){ return d.date; }),
@@ -116,6 +129,58 @@ title: "Dashboard"
       }
     }
   });
+
+  // ---------- Date range filter ----------
+  (function(){
+    var rangeButtons = document.querySelectorAll('.range-btn');
+    var customInputs = document.getElementById('custom-range-inputs');
+    var startInput = document.getElementById('range-start');
+    var endInput = document.getElementById('range-end');
+    var applyCustomBtn = document.getElementById('apply-custom-range');
+
+    function getStored(){ try { return localStorage.getItem('contentiq-date-range'); } catch(e){ return null; } }
+    function setStored(v){ try { localStorage.setItem('contentiq-date-range', v); } catch(e){} }
+
+    function filterDaily(rangeValue, customStart, customEnd){
+      if (rangeValue === 'all') return daily;
+
+      if (rangeValue === 'custom') {
+        if (!customStart || !customEnd) return daily;
+        var s = new Date(customStart), e = new Date(customEnd);
+        return daily.filter(function(d){
+          var dd = new Date(d.date);
+          return dd >= s && dd <= e;
+        });
+      }
+
+      var days = parseInt(rangeValue, 10);
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      return daily.filter(function(d){ return new Date(d.date) >= cutoff; });
+    }
+
+    function applyRange(rangeValue, customStart, customEnd){
+      var filtered = filterDaily(rangeValue, customStart, customEnd);
+      timelineChart.data.labels = filtered.map(function(d){ return d.date; });
+      timelineChart.data.datasets[0].data = filtered.map(function(d){ return d.impressions; });
+      timelineChart.update();
+
+      rangeButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.range === rangeValue); });
+      customInputs.style.display = rangeValue === 'custom' ? 'flex' : 'none';
+
+      if (rangeValue !== 'custom') setStored(rangeValue);
+    }
+
+    rangeButtons.forEach(function(btn){
+      btn.addEventListener('click', function(){ applyRange(btn.dataset.range); });
+    });
+
+    applyCustomBtn.addEventListener('click', function(){
+      applyRange('custom', startInput.value, endInput.value);
+    });
+
+    applyRange(getStored() || 'all');
+  })();
 
   // ---------- Relative / Absolute metrics toggle ----------
   (function(){

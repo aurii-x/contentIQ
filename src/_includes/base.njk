@@ -38,6 +38,23 @@
   h1.page-title{ font-family:var(--display); font-weight:600; font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:0 0 8px; }
   .subtitle{ color:var(--ink-soft); font-size:15px; margin:0 0 36px; }
   .metrics-toggle{ display:flex; gap:8px; margin-bottom:24px; }
+  .range-toggle{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .range-btn{
+    font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    padding:6px 14px; border-radius:20px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink-soft); cursor:pointer; transition:all .15s ease;
+  }
+  .range-btn:hover{ border-color:var(--accent); color:var(--ink); }
+  .range-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--bg); }
+  .custom-range-inputs{ display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px; color:var(--ink-soft); }
+  .custom-range-inputs input[type="date"]{
+    font-family:var(--sans); font-size:12px; padding:5px 8px; border-radius:6px;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  }
+  .custom-range-inputs button{
+    font-family:var(--mono); font-size:11px; text-transform:uppercase; padding:5px 12px;
+    border-radius:16px; border:1px solid var(--accent); background:var(--accent); color:var(--bg); cursor:pointer;
+  }
   .metrics-btn{
     font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
     padding:8px 16px; border-radius:20px; border:1px solid var(--line);
@@ -95,8 +112,74 @@
     function getStored(){ try{return localStorage.getItem('contentiq-dash-theme');}catch(e){return null;} }
     function setStored(v){ try{localStorage.setItem('contentiq-dash-theme', v);}catch(e){} }
     function timeBased(){ var h=new Date().getHours(); return (h>=19||h<7)?'dark':'light'; }
+
+    // ---------- Sunset-based theme (falls back to timeBased() above) ----------
+    function isDarkFromSunTimes(sunriseISO, sunsetISO){
+      var now = Date.now();
+      var sunrise = new Date(sunriseISO).getTime();
+      var sunset = new Date(sunsetISO).getTime();
+      if (isNaN(sunrise) || isNaN(sunset)) return null;
+      return (now < sunrise || now > sunset) ? 'dark' : 'light';
+    }
+
+    function getCachedSunTimes(){
+      try {
+        var cached = JSON.parse(localStorage.getItem('contentiq-suntimes') || 'null');
+        if (!cached) return null;
+        var today = new Date().toDateString();
+        if (cached.forDate !== today) return null;
+        return cached;
+      } catch(e){ return null; }
+    }
+
+    function cacheSunTimes(sunrise, sunset){
+      try {
+        localStorage.setItem('contentiq-suntimes', JSON.stringify({
+          forDate: new Date().toDateString(), sunrise: sunrise, sunset: sunset
+        }));
+      } catch(e){}
+    }
+
+    function applyFromSunTimes(){
+      var cached = getCachedSunTimes();
+      if (cached) {
+        var result = isDarkFromSunTimes(cached.sunrise, cached.sunset);
+        if (result && !getStored()) root.setAttribute('data-theme', result);
+        return;
+      }
+
+      if (!navigator.geolocation) return; // silently keep whatever apply() already set
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          var url = 'https://api.sunrise-sunset.org/json?lat=' + pos.coords.latitude +
+                     '&lng=' + pos.coords.longitude + '&formatted=0';
+          fetch(url).then(function(r){ return r.json(); }).then(function(data){
+            if (data.status !== 'OK') return;
+            cacheSunTimes(data.results.sunrise, data.results.sunset);
+            var result = isDarkFromSunTimes(data.results.sunrise, data.results.sunset);
+            if (result && !getStored()) root.setAttribute('data-theme', result);
+          }).catch(function(){ /* keep the timeBased() fallback already applied */ });
+        },
+        function(){ /* permission denied or unavailable, keep the timeBased() fallback */ },
+        { timeout: 4000 }
+      );
+    }
+
     function apply(){ root.setAttribute('data-theme', getStored()||timeBased()); }
     apply();
+    applyFromSunTimes();
+
+    setInterval(function(){
+      if (getStored()) return; // manual override always wins
+      var cached = getCachedSunTimes();
+      if (cached) {
+        var result = isDarkFromSunTimes(cached.sunrise, cached.sunset);
+        if (result) root.setAttribute('data-theme', result);
+      } else {
+        apply();
+      }
+    }, 5 * 60 * 1000);
     btn.addEventListener('click', function(){
       var next = root.getAttribute('data-theme')==='dark' ? 'light':'dark';
       root.setAttribute('data-theme', next); setStored(next);
