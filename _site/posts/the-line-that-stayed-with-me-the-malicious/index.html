@@ -37,6 +37,15 @@
   .eyebrow{ font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
   h1.page-title{ font-family:var(--display); font-weight:600; font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:0 0 8px; }
   .subtitle{ color:var(--ink-soft); font-size:15px; margin:0 0 36px; }
+  .metrics-toggle{ display:flex; gap:8px; margin-bottom:24px; }
+  .metrics-btn{
+    font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink-soft); cursor:pointer; transition:all .15s ease;
+  }
+  .metrics-btn:hover{ border-color:var(--accent); color:var(--ink); }
+  .metrics-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--bg); }
+
   .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:40px; }
   .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
   .kpi-label{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 8px; }
@@ -128,12 +137,6 @@
       </tr>
       
       <tr>
-        <td>07/18/2026</td>
-        <td>130</td>
-        <td>1</td>
-      </tr>
-      
-      <tr>
         <td>7/19/2026</td>
         <td>132</td>
         <td>1</td>
@@ -147,7 +150,7 @@
 
 
 <script>
-  var history = [{"pulled_at":"7/16/2026","impressions":58,"engagements":1},{"pulled_at":"07/18/2026","impressions":130,"engagements":1},{"pulled_at":"7/19/2026","impressions":132,"engagements":1}];
+  var history = [{"pulled_at":"7/16/2026","impressions":58,"engagements":1},{"pulled_at":"7/19/2026","impressions":132,"engagements":1}];
   var styles = getComputedStyle(document.documentElement);
   var accent = styles.getPropertyValue('--accent').trim();
   var inkSoft = styles.getPropertyValue('--ink-soft').trim();

@@ -37,6 +37,15 @@
   .eyebrow{ font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
   h1.page-title{ font-family:var(--display); font-weight:600; font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:0 0 8px; }
   .subtitle{ color:var(--ink-soft); font-size:15px; margin:0 0 36px; }
+  .metrics-toggle{ display:flex; gap:8px; margin-bottom:24px; }
+  .metrics-btn{
+    font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink-soft); cursor:pointer; transition:all .15s ease;
+  }
+  .metrics-btn:hover{ border-color:var(--accent); color:var(--ink); }
+  .metrics-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--bg); }
+
   .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:40px; }
   .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
   .kpi-label{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 8px; }
@@ -94,15 +103,15 @@
   </div>
   <div class="meta-item">
     <p class="label">Latest Impressions</p>
-    <p class="value">61</p>
+    <p class="value">467</p>
   </div>
   <div class="meta-item">
     <p class="label">Latest Engagements</p>
-    <p class="value">2</p>
+    <p class="value">4</p>
   </div>
   <div class="meta-item">
     <p class="label">Engagement Rate</p>
-    <p class="value">3.28%</p>
+    <p class="value">0.86%</p>
   </div>
 </div>
 
@@ -140,12 +149,6 @@
       </tr>
       
       <tr>
-        <td>07/18/2026</td>
-        <td>125</td>
-        <td>2</td>
-      </tr>
-      
-      <tr>
         <td>7/19/2026</td>
         <td>467</td>
         <td>4</td>
@@ -159,7 +162,7 @@
 
 
 <script>
-  var history = [{"pulled_at":"7/12/2026","impressions":384,"engagements":2},{"pulled_at":"7/14/2026","impressions":439,"engagements":4},{"pulled_at":"7/16/2026","impressions":461,"engagements":4},{"pulled_at":"07/18/2026","impressions":125,"engagements":2},{"pulled_at":"7/19/2026","impressions":467,"engagements":4}];
+  var history = [{"pulled_at":"7/12/2026","impressions":384,"engagements":2},{"pulled_at":"7/14/2026","impressions":439,"engagements":4},{"pulled_at":"7/16/2026","impressions":461,"engagements":4},{"pulled_at":"7/19/2026","impressions":467,"engagements":4}];
   var styles = getComputedStyle(document.documentElement);
   var accent = styles.getPropertyValue('--accent').trim();
   var inkSoft = styles.getPropertyValue('--ink-soft').trim();

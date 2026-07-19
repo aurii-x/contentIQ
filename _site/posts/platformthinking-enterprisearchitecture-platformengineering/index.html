@@ -37,6 +37,15 @@
   .eyebrow{ font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
   h1.page-title{ font-family:var(--display); font-weight:600; font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:0 0 8px; }
   .subtitle{ color:var(--ink-soft); font-size:15px; margin:0 0 36px; }
+  .metrics-toggle{ display:flex; gap:8px; margin-bottom:24px; }
+  .metrics-btn{
+    font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink-soft); cursor:pointer; transition:all .15s ease;
+  }
+  .metrics-btn:hover{ border-color:var(--accent); color:var(--ink); }
+  .metrics-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--bg); }
+
   .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:40px; }
   .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
   .kpi-label{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin:0 0 8px; }
@@ -94,7 +103,7 @@
   </div>
   <div class="meta-item">
     <p class="label">Latest Impressions</p>
-    <p class="value">112</p>
+    <p class="value">113</p>
   </div>
   <div class="meta-item">
     <p class="label">Latest Engagements</p>
@@ -102,14 +111,14 @@
   </div>
   <div class="meta-item">
     <p class="label">Engagement Rate</p>
-    <p class="value">1.79%</p>
+    <p class="value">1.77%</p>
   </div>
 </div>
 
 <div class="card">
   <h2>Performance Over Time</h2>
   
-  <canvas id="postChart" height="100"></canvas>
+  <p style="color:var(--ink-soft); font-size:14px;">Only one data pull recorded for this post so far. The growth chart needs at least 2 pulls to show a trend, check back after the next export.</p>
   
 </div>
 
@@ -120,12 +129,6 @@
       <tr><th>Pulled On</th><th>Impressions</th><th>Engagements</th></tr>
     </thead>
     <tbody>
-      
-      <tr>
-        <td>07/18/2026</td>
-        <td>110</td>
-        <td>2</td>
-      </tr>
       
       <tr>
         <td>7/19/2026</td>
@@ -139,34 +142,6 @@
 
 <p><a class="back-link" href="https://www.linkedin.com/posts/s-thiru_platformthinking-enterprisearchitecture-platformengineering-share-7483976009793400832-9rhs" target="_blank" rel="noopener">View original post on LinkedIn &rarr;</a></p>
 
-
-<script>
-  var history = [{"pulled_at":"07/18/2026","impressions":110,"engagements":2},{"pulled_at":"7/19/2026","impressions":112,"engagements":2}];
-  var styles = getComputedStyle(document.documentElement);
-  var accent = styles.getPropertyValue('--accent').trim();
-  var inkSoft = styles.getPropertyValue('--ink-soft').trim();
-  var line = styles.getPropertyValue('--line').trim();
-
-  new Chart(document.getElementById('postChart'), {
-    type: 'line',
-    data: {
-      labels: history.map(function(h){ return h.pulled_at; }),
-      datasets: [
-        { label: 'Impressions', data: history.map(function(h){ return h.impressions; }), borderColor: accent, backgroundColor: accent, tension: 0.3, yAxisID: 'y' },
-        { label: 'Engagements', data: history.map(function(h){ return h.engagements; }), borderColor: inkSoft, backgroundColor: inkSoft, tension: 0.3, yAxisID: 'y1' }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: inkSoft } } },
-      scales: {
-        y: { beginAtZero: true, position: 'left', grid: { color: line }, ticks: { color: inkSoft } },
-        y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { color: inkSoft } },
-        x: { grid: { display: false }, ticks: { color: inkSoft } }
-      }
-    }
-  });
-</script>
 
 
 </main>
