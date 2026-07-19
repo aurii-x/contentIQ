@@ -6,14 +6,21 @@ title: "Dashboard"
 <h1 class="page-title">Post Performance Dashboard</h1>
 <p class="subtitle">Tracking {{ posts.length }} tagged posts across {{ dailyTotals.length }} days of data</p>
 
+<div class="metrics-toggle">
+  <button class="metrics-btn active" data-metrics="relative" type="button">Relative view</button>
+  <button class="metrics-btn" data-metrics="absolute" type="button">Exact numbers</button>
+</div>
+
 <div class="kpi-grid">
   <div class="kpi-card">
-    <p class="kpi-label">Total Impressions</p>
-    <p class="kpi-value">{{ (posts | sum("impressions")) or 0 }}</p>
+    <p class="kpi-label">Reach vs. Average Post</p>
+    <p class="kpi-value abs-hide">—</p>
+    <p class="kpi-value rel-hide" style="display:none;">{{ (posts | sum("impressions")) or 0 }}</p>
   </div>
   <div class="kpi-card">
-    <p class="kpi-label">Total Engagements</p>
-    <p class="kpi-value">{{ (posts | sum("engagements")) or 0 }}</p>
+    <p class="kpi-label">Engagement vs. Average Post</p>
+    <p class="kpi-value abs-hide">—</p>
+    <p class="kpi-value rel-hide" style="display:none;">{{ (posts | sum("engagements")) or 0 }}</p>
   </div>
   <div class="kpi-card">
     <p class="kpi-label">Avg Engagement Rate</p>
@@ -41,7 +48,9 @@ title: "Dashboard"
     <thead>
       <tr>
         <th>Date</th><th>Topic</th><th>Type</th><th>Pillar</th>
-        <th>Impressions</th><th>Engagements</th><th>Rate</th>
+        <th class="abs-hide">Impressions</th><th class="abs-hide">Engagements</th>
+        <th class="rel-hide" style="display:none;">Reach Index</th>
+        <th>Rate</th>
       </tr>
     </thead>
     <tbody>
@@ -51,8 +60,9 @@ title: "Dashboard"
         <td><a class="post-link" href="/posts/{{ post.slug }}/">{{ post.topic | truncate(35) }}</a></td>
         <td><span class="type-pill">{{ post.contentType }}</span></td>
         <td>{{ post.pillar }}</td>
-        <td>{{ post.impressions }}</td>
-        <td>{{ post.engagements }}</td>
+        <td class="abs-hide">{{ post.impressions }}</td>
+        <td class="abs-hide">{{ post.engagements }}</td>
+        <td class="rel-hide" style="display:none;" data-impressions="{{ post.impressions }}" data-avg="{{ stats.avgImpressions }}"></td>
         <td class="{% if post.engagementRate >= 0.015 %}rate-good{% endif %}">{{ post.engagementRate | pct }}</td>
       </tr>
       {% endfor %}
@@ -106,4 +116,38 @@ title: "Dashboard"
       }
     }
   });
+
+  // ---------- Relative / Absolute metrics toggle ----------
+  (function(){
+    var buttons = document.querySelectorAll('.metrics-btn');
+
+    function getStored(){ try { return localStorage.getItem('contentiq-metrics-view'); } catch(e){ return null; } }
+    function setStored(v){ try { localStorage.setItem('contentiq-metrics-view', v); } catch(e){} }
+
+    // Fill in the reach index cells once, from their data attributes
+    document.querySelectorAll('[data-impressions]').forEach(function(cell){
+      var impressions = parseFloat(cell.dataset.impressions) || 0;
+      var avg = parseFloat(cell.dataset.avg) || 0;
+      if (avg > 0) {
+        var multiplier = impressions / avg;
+        cell.textContent = multiplier.toFixed(1) + 'x avg';
+      } else {
+        cell.textContent = '—';
+      }
+    });
+
+    function setView(view){
+      var showAbs = view === 'absolute';
+      document.querySelectorAll('.abs-hide').forEach(function(el){ el.style.display = showAbs ? '' : 'none'; });
+      document.querySelectorAll('.rel-hide').forEach(function(el){ el.style.display = showAbs ? 'none' : ''; });
+      buttons.forEach(function(b){ b.classList.toggle('active', b.dataset.metrics === view); });
+      setStored(view);
+    }
+
+    setView(getStored() || 'relative');
+
+    buttons.forEach(function(btn){
+      btn.addEventListener('click', function(){ setView(btn.dataset.metrics); });
+    });
+  })();
 </script>
