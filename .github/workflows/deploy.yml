@@ -1,0 +1,39 @@
+name: Deploy ContentIQ Landing Page
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inject real deploy timestamp
+        run: |
+          BUILD_TIME=$(TZ="America/New_York" date "+%B %-d, %Y at %-I:%M %p %Z")
+          sed -i "s/__BUILD_TIME__/${BUILD_TIME}/" index.html
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
