@@ -1,0 +1,109 @@
+---
+layout: base.njk
+title: "Dashboard"
+---
+<p class="eyebrow">Content Intelligence</p>
+<h1 class="page-title">Post Performance Dashboard</h1>
+<p class="subtitle">Tracking {{ posts.length }} tagged posts across {{ dailyTotals.length }} days of data</p>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <p class="kpi-label">Total Impressions</p>
+    <p class="kpi-value">{{ (posts | sum("impressions")) or 0 }}</p>
+  </div>
+  <div class="kpi-card">
+    <p class="kpi-label">Total Engagements</p>
+    <p class="kpi-value">{{ (posts | sum("engagements")) or 0 }}</p>
+  </div>
+  <div class="kpi-card">
+    <p class="kpi-label">Avg Engagement Rate</p>
+    <p class="kpi-value">{{ stats.avgRate | pct }}</p>
+  </div>
+  <div class="kpi-card">
+    <p class="kpi-label">Best Performer</p>
+    <p class="kpi-value" style="font-size:16px;">{{ stats.bestPost.topic | truncate(28) }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Engagement Rate by Pillar</h2>
+  <canvas id="pillarChart" height="90"></canvas>
+</div>
+
+<div class="card">
+  <h2>Account Impressions Over Time</h2>
+  <canvas id="timelineChart" height="90"></canvas>
+</div>
+
+<div class="card">
+  <h2>All Posts</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Topic</th><th>Type</th><th>Pillar</th>
+        <th>Impressions</th><th>Engagements</th><th>Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+      <tr>
+        <td>{{ post.date }}</td>
+        <td><a class="post-link" href="/posts/{{ post.slug }}/">{{ post.topic | truncate(35) }}</a></td>
+        <td><span class="type-pill">{{ post.contentType }}</span></td>
+        <td>{{ post.pillar }}</td>
+        <td>{{ post.impressions }}</td>
+        <td>{{ post.engagements }}</td>
+        <td class="{% if post.engagementRate >= 0.015 %}rate-good{% endif %}">{{ post.engagementRate | pct }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  var posts = {{ posts | json | safe }};
+  var daily = {{ dailyTotals | json | safe }};
+
+  var pillarMap = {};
+  posts.forEach(function(p){
+    if (!pillarMap[p.pillar]) pillarMap[p.pillar] = { total: 0, count: 0 };
+    pillarMap[p.pillar].total += p.engagementRate;
+    pillarMap[p.pillar].count += 1;
+  });
+  var pillarLabels = Object.keys(pillarMap);
+  var pillarData = pillarLabels.map(function(k){ return (pillarMap[k].total / pillarMap[k].count * 100).toFixed(2); });
+
+  var styles = getComputedStyle(document.documentElement);
+  var accent = styles.getPropertyValue('--accent').trim();
+  var inkSoft = styles.getPropertyValue('--ink-soft').trim();
+  var line = styles.getPropertyValue('--line').trim();
+
+  new Chart(document.getElementById('pillarChart'), {
+    type: 'bar',
+    data: { labels: pillarLabels, datasets: [{ label: 'Avg Engagement Rate %', data: pillarData, backgroundColor: accent, borderRadius: 6 }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: line }, ticks: { color: inkSoft } },
+        x: { grid: { display: false }, ticks: { color: inkSoft } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: {
+      labels: daily.map(function(d){ return d.date; }),
+      datasets: [{ label: 'Impressions', data: daily.map(function(d){ return d.impressions; }), borderColor: accent, backgroundColor: accent, tension: 0.3, fill: false }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: line }, ticks: { color: inkSoft } },
+        x: { grid: { display: false }, ticks: { color: inkSoft } }
+      }
+    }
+  });
+</script>

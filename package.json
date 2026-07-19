@@ -1,0 +1,27 @@
+{
+  "name": "contentiq",
+  "version": "1.0.0",
+  "description": "A quiet, internal tool that tracks how content actually performs over time, and eventually, what to publish next.",
+  "main": "eleventy.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aurii-x/contentiq.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aurii-x/contentiq/issues"
+  },
+  "homepage": "https://github.com/aurii-x/contentiq#readme",
+  "dependencies": {
+    "@11ty/eleventy": "^3.1.6"
+  }
+}

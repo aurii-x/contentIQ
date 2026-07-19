@@ -1,0 +1,96 @@
+---
+layout: base.njk
+pagination:
+  data: posts
+  size: 1
+  alias: post
+permalink: "/posts/{{ post.slug }}/"
+eleventyComputed:
+  title: "{{ post.topic }}"
+---
+<a class="back-link" href="/">&larr; Back to all posts</a>
+
+<p class="eyebrow">{{ post.pillar }}</p>
+<h1 class="page-title">{{ post.topic }}</h1>
+
+<div class="meta-row">
+  <div class="meta-item">
+    <p class="label">Published</p>
+    <p class="value">{{ post.date }}</p>
+  </div>
+  <div class="meta-item">
+    <p class="label">Type</p>
+    <p class="value">{{ post.contentType }}</p>
+  </div>
+  <div class="meta-item">
+    <p class="label">Latest Impressions</p>
+    <p class="value">{{ post.impressions }}</p>
+  </div>
+  <div class="meta-item">
+    <p class="label">Latest Engagements</p>
+    <p class="value">{{ post.engagements }}</p>
+  </div>
+  <div class="meta-item">
+    <p class="label">Engagement Rate</p>
+    <p class="value">{{ post.engagementRate | pct }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Performance Over Time</h2>
+  {% if post.history.length > 1 %}
+  <canvas id="postChart" height="100"></canvas>
+  {% else %}
+  <p style="color:var(--ink-soft); font-size:14px;">Only one data pull recorded for this post so far. The growth chart needs at least 2 pulls to show a trend, check back after the next export.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Raw Pull History</h2>
+  <table>
+    <thead>
+      <tr><th>Pulled On</th><th>Impressions</th><th>Engagements</th></tr>
+    </thead>
+    <tbody>
+      {% for h in post.history %}
+      <tr>
+        <td>{{ h.pulled_at }}</td>
+        <td>{{ h.impressions }}</td>
+        <td>{{ h.engagements }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p><a class="back-link" href="{{ post.url }}" target="_blank" rel="noopener">View original post on LinkedIn &rarr;</a></p>
+
+{% if post.history.length > 1 %}
+<script>
+  var history = {{ post.history | json | safe }};
+  var styles = getComputedStyle(document.documentElement);
+  var accent = styles.getPropertyValue('--accent').trim();
+  var inkSoft = styles.getPropertyValue('--ink-soft').trim();
+  var line = styles.getPropertyValue('--line').trim();
+
+  new Chart(document.getElementById('postChart'), {
+    type: 'line',
+    data: {
+      labels: history.map(function(h){ return h.pulled_at; }),
+      datasets: [
+        { label: 'Impressions', data: history.map(function(h){ return h.impressions; }), borderColor: accent, backgroundColor: accent, tension: 0.3, yAxisID: 'y' },
+        { label: 'Engagements', data: history.map(function(h){ return h.engagements; }), borderColor: inkSoft, backgroundColor: inkSoft, tension: 0.3, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: inkSoft } } },
+      scales: {
+        y: { beginAtZero: true, position: 'left', grid: { color: line }, ticks: { color: inkSoft } },
+        y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { color: inkSoft } },
+        x: { grid: { display: false }, ticks: { color: inkSoft } }
+      }
+    }
+  });
+</script>
+{% endif %}

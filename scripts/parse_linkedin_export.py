@@ -38,9 +38,10 @@ from pathlib import Path
 
 import openpyxl
 
-MASTER_PATH = Path("data/master.csv")
-DAILY_PATH = Path("data/daily_totals.csv")
-DISCOVERY_LOG_PATH = Path("data/discovery_log.csv")
+MASTER_PATH = Path("src/_data/master.csv")
+DAILY_PATH = Path("src/_data/daily_totals.csv")
+DISCOVERY_LOG_PATH = Path("src/_data/discovery_log.csv")
+SNAPSHOT_PATH = Path("src/_data/post_snapshots.csv")
 
 FIELDNAMES = [
     "date", "post_url", "post_topic", "content_type", "pillar",
@@ -54,6 +55,11 @@ DAILY_FIELDNAMES = [
 
 DISCOVERY_FIELDNAMES = [
     "pulled_at", "range_start", "range_end", "total_impressions", "total_members_reached",
+]
+
+SNAPSHOT_FIELDNAMES = [
+    "pulled_at", "post_id", "post_url", "post_topic", "impressions",
+    "total_engagements", "engagement_rate",
 ]
 
 
@@ -293,6 +299,47 @@ def append_discovery_log(xlsx_path: str):
     print(f"  -> {DISCOVERY_LOG_PATH.resolve()}")
 
 
+def append_snapshots(rows, xlsx_path):
+    """Append one row per post for this pull, using the export's range_end
+    as the 'as of' date. Never overwrites, every pull adds new rows, this
+    is what makes a per-post growth-over-time chart possible."""
+    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    discovery = parse_discovery(wb["DISCOVERY"]) if "DISCOVERY" in wb.sheetnames else {}
+    pulled_at = discovery.get("range_end") or datetime.now().strftime("%m/%d/%Y")
+
+    existing_keys = set()
+    file_exists = SNAPSHOT_PATH.exists()
+    if file_exists:
+        with open(SNAPSHOT_PATH, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                existing_keys.add((row["pulled_at"], row["post_id"]))
+
+    SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    added = 0
+    with open(SNAPSHOT_PATH, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=SNAPSHOT_FIELDNAMES)
+        if not file_exists:
+            writer.writeheader()
+        for row in rows:
+            pid = row["post_id"]
+            key = (pulled_at, pid)
+            if key in existing_keys:
+                continue  # already have a snapshot for this post at this pull date
+            writer.writerow({
+                "pulled_at": pulled_at,
+                "post_id": pid,
+                "post_url": row["post_url"],
+                "post_topic": row["post_topic"],
+                "impressions": row["impressions"],
+                "total_engagements": row["total_engagements"],
+                "engagement_rate": row["engagement_rate"],
+            })
+            added += 1
+
+    print(f"Post snapshots: {added} new snapshot row(s) added for pull dated {pulled_at}.")
+    print(f"  -> {SNAPSHOT_PATH.resolve()}")
+
+
 def load_master():
     if not MASTER_PATH.exists():
         return {}
@@ -344,7 +391,11 @@ def main():
         sys.exit(1)
 
     rows = build_rows(xlsx_path)
+    rows_copy = [dict(r) for r in rows]  # merge_and_save pops post_id, snapshots need it intact
     merge_and_save(rows)
+
+    print()
+    append_snapshots(rows_copy, xlsx_path)
 
     print()
     daily_rows = build_daily_rows(xlsx_path)
