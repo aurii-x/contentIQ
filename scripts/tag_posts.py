@@ -14,7 +14,7 @@ Usage:
 import csv
 from pathlib import Path
 
-MASTER_PATH = Path("data/master.csv")
+MASTER_PATH = Path("src/_data/master.csv")
 
 # Add to this list as you publish new posts. Each entry: a keyword found
 # in the post's URL/topic slug, mapped to (content_type, pillar).
