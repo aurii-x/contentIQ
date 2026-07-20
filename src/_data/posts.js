@@ -38,6 +38,8 @@ module.exports = function () {
   // untagged historical posts stay out of the dashboard for now.
   const tagged = master.filter((r) => r.content_type && r.content_type.trim() !== "");
 
+  const usedSlugs = new Set();
+
   const posts = tagged.map((r) => {
     const pid = postIdFromUrl(r.post_url);
     const history = snapshots
@@ -49,9 +51,19 @@ module.exports = function () {
       }))
       .sort((a, b) => new Date(a.pulled_at) - new Date(b.pulled_at));
 
+    // Two posts (e.g. an Article and its teaser) can share identical topic
+    // text, which would otherwise generate the same slug and the same
+    // output path, crashing the build. Only actual collisions get a short
+    // disambiguating suffix appended, every other post's URL is untouched.
+    let slug = slugify(r.post_topic || pid);
+    if (usedSlugs.has(slug)) {
+      slug = slug + "-" + pid.slice(-6);
+    }
+    usedSlugs.add(slug);
+
     return {
       id: pid,
-      slug: slugify(r.post_topic || pid),
+      slug,
       date: r.date,
       url: r.post_url,
       topic: r.post_topic,
